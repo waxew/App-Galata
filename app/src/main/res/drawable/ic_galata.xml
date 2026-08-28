@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  آیکون برداری گالاتا؛ بدون تصویر Raster.
+  فنجان، بخار و رنگ‌های کافه‌ای با VectorDrawable اندروید رسم می‌شوند.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- زمینه قهوه‌ای تیره -->
+    <path
+        android:fillColor="#432818"
+        android:pathData="M54,4 A50,50 0,1 1,53.9 4" />
+
+    <!-- حلقه کاراملی -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#C4854C"
+        android:strokeWidth="4"
+        android:pathData="M54,9 A45,45 0,1 1,53.9 9" />
+
+    <!-- بدنه فنجان -->
+    <path
+        android:fillColor="#FFF7EC"
+        android:pathData="M28,46 L70,46 L67,68 Q64,76 52,77 L43,77 Q31,76 29,68 Z" />
+
+    <!-- دسته فنجان -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFF7EC"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M69,51 C85,48 88,69 70,69" />
+
+    <!-- بخار اول -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#C4854C"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M42,41 C35,34 48,29 42,21" />
+
+    <!-- بخار دوم -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#F2D5B5"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M56,41 C49,34 62,28 56,18" />
+
+    <!-- دانه قهوه کوچک -->
+    <path
+        android:fillColor="#6B3F25"
+        android:pathData="M49,58 C49,51 59,50 61,57 C63,64 54,68 50,63 Z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#F2D5B5"
+        android:strokeWidth="1.6"
+        android:pathData="M55,53 C52,57 57,60 54,65" />
+</vector>
