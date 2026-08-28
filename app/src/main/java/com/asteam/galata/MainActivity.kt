@@ -7,21 +7,28 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.asteam.galata.ui.*
 
 /**
- * اکتیویتی اصلی نسخه 0.2 گالاتا.
- * این فایل فقط پوسته برنامه، Drawer واقعی و ناوبری بین صفحه‌های مستقل را مدیریت می‌کند.
- * ظاهر و منطق هر صفحه در فایل جداگانه همان صفحه قرار دارد.
+ * اکتیویتی اصلی گالاتا.
+ *
+ * مسئولیت این فایل فقط سه مورد است:
+ * ۱) پوسته اصلی برنامه و Drawer استاندارد سمت راست در محیط RTL.
+ * ۲) ناوبری بین صفحه‌های مستقل.
+ * ۳) کنترل نشست ورود ۲۰ ساعته.
  */
 class MainActivity : Activity() {
     lateinit var db: GalataDb
         private set
 
+    private lateinit var sessionManager: SessionManager
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var contentFrame: FrameLayout
     private lateinit var drawerPanel: LinearLayout
+    private lateinit var drawerOwnerName: TextView
+
     private var loggedIn = false
     private var currentRoute = Route.AUTH
     private var detailBackRoute: Route? = null
@@ -33,23 +40,40 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         db = GalataDb(this)
+        sessionManager = SessionManager(this)
+
+        // تمام برنامه فارسی و RTL است؛ در RTL، START همان سمت راست صفحه است.
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
         buildShell()
-        navigate(Route.AUTH)
+
+        // اگر مالک قبلاً گزینه «به خاطر سپردن ورود» را فعال کرده باشد و ۲۰ ساعت تمام نشده باشد،
+        // صفحه رمز عبور رد می‌شود و کاربر مستقیم وارد خانه می‌شود.
+        if (db.hasOwner() && sessionManager.isRememberedSessionValid()) {
+            loggedIn = true
+            refreshDrawerHeader()
+            navigate(Route.HOME)
+        } else {
+            sessionManager.clearRememberedSession()
+            navigate(Route.AUTH)
+        }
     }
 
-    /** پوسته اصلی شامل محتوای صفحه و Drawer استاندارد سمت راست. */
+    /** پوسته اصلی شامل محتوای صفحه و Drawer استاندارد از سمت راست. */
     private fun buildShell() {
         drawerLayout = DrawerLayout(this).apply {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             setBackgroundColor(CafeTheme.cream)
+            // جلوگیری از رفتار مبهم Drawer با لمس‌ها؛ وضعیت قفل فقط با ورود کنترل می‌شود.
+            setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.START)
         }
+
         contentFrame = FrameLayout(this).apply {
             layoutParams = DrawerLayout.LayoutParams(
                 DrawerLayout.LayoutParams.MATCH_PARENT,
                 DrawerLayout.LayoutParams.MATCH_PARENT
             )
         }
+
         drawerPanel = buildDrawer()
         drawerLayout.addView(contentFrame)
         drawerLayout.addView(drawerPanel)
@@ -57,8 +81,8 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Drawer کافه‌ای واقعی.
-     * برخلاف نسخه 0.1 این منو Popup نیست و از سمت راست صفحه باز می‌شود.
+     * Drawer واقعی گالاتا.
+     * چون کل UI در حالت RTL است از GravityCompat.START استفاده می‌کنیم؛ START در RTL سمت راست است.
      */
     private fun buildDrawer(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
@@ -74,35 +98,37 @@ class MainActivity : Activity() {
         layoutParams = DrawerLayout.LayoutParams(
             CafeTheme.dp(this@MainActivity, 310),
             DrawerLayout.LayoutParams.MATCH_PARENT
-        ).apply { gravity = Gravity.END }
+        ).apply {
+            gravity = GravityCompat.START
+        }
 
-        // هدر پروفایل و برند کافه.
+        // پروفایل/برند بالای Drawer مطابق ساختار پروژه.
         addView(GalataLogoView(this@MainActivity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                CafeTheme.dp(this@MainActivity, 150)
+                CafeTheme.dp(this@MainActivity, 135)
             )
         })
-        addView(TextView(this@MainActivity).apply {
+
+        drawerOwnerName = TextView(this@MainActivity).apply {
             text = db.ownerName()
             textSize = 17f
             gravity = Gravity.CENTER
             setTextColor(CafeTheme.foam)
             setPadding(8, 4, 8, 14)
-        })
+        }
+        addView(drawerOwnerName)
         addView(drawerDivider())
 
+        // ترتیب گزینه‌ها مطابق Activity / Setting در Miro نگه داشته شده است.
         menuItem("خانه", CafeIconView.Icon.HOME) { navigate(Route.HOME) }
-        menuItem("فروش کافه", CafeIconView.Icon.COFFEE) { navigate(Route.SALE) }
-        menuItem("تسویه مشتری", CafeIconView.Icon.WALLET) { navigate(Route.PAYMENTS) }
-        menuItem("مشتری‌ها", CafeIconView.Icon.CUSTOMER) { navigate(Route.CUSTOMERS) }
-        menuItem("منوی کافه / محصولات", CafeIconView.Icon.PRODUCT) { navigate(Route.PRODUCTS) }
-        menuItem("فاکتورها", CafeIconView.Icon.INVOICE) { navigate(Route.INVOICES) }
-        menuItem("یادآورها", CafeIconView.Icon.BELL) { navigate(Route.REMINDERS) }
-        menuItem("هزینه‌ها", CafeIconView.Icon.EXPENSE) { navigate(Route.EXPENSES) }
+        menuItem("صورت حساب", CafeIconView.Icon.INVOICE) { navigate(Route.INVOICES) }
+        menuItem("لیست مشتری ها", CafeIconView.Icon.CUSTOMER) { navigate(Route.CUSTOMERS) }
+        menuItem("لیست کالا / خدمات", CafeIconView.Icon.PRODUCT) { navigate(Route.PRODUCTS) }
+        menuItem("یاد آور", CafeIconView.Icon.BELL) { navigate(Route.REMINDERS) }
 
         addView(drawerDivider())
-        menuItem("درباره نرم‌افزار", CafeIconView.Icon.COFFEE) { navigate(Route.ABOUT) }
+        menuItem("درباره نرم افزار", CafeIconView.Icon.COFFEE) { navigate(Route.ABOUT) }
         menuItem("تماس با ما", CafeIconView.Icon.TEA) { navigate(Route.CONTACT) }
         menuItem("خروج", CafeIconView.Icon.HOME) { logout() }
     }
@@ -111,13 +137,13 @@ class MainActivity : Activity() {
         setBackgroundColor(CafeTheme.caramel)
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            1
+            CafeTheme.dp(this@MainActivity, 1)
         ).apply {
             setMargins(0, CafeTheme.dp(this@MainActivity, 8), 0, CafeTheme.dp(this@MainActivity, 8))
         }
     }
 
-    /** افزودن یک ردیف استاندارد به Drawer با آیکون کدنویسی‌شده. */
+    /** یک ردیف قابل لمس در Drawer با آیکون گرافیکی کدنویسی‌شده. */
     private fun LinearLayout.menuItem(
         title: String,
         iconType: CafeIconView.Icon,
@@ -146,15 +172,18 @@ class MainActivity : Activity() {
                 setTextColor(CafeTheme.foam)
                 gravity = Gravity.END
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            setOnClickListener { action() }
+            setOnClickListener {
+                action()
+                closeDrawer()
+            }
         })
     }
 
-    /** ناوبری مرکزی؛ هر Route دقیقاً به یک فایل صفحه مستقل متصل است. */
+    /** ناوبری مرکزی؛ هر Route به فایل مستقل همان صفحه متصل است. */
     fun navigate(route: Route) {
         currentRoute = route
         detailBackRoute = null
-        if (::drawerLayout.isInitialized && loggedIn) drawerLayout.closeDrawer(Gravity.END)
+        closeDrawer()
 
         val screen: GalataScreen = when (route) {
             Route.AUTH -> AuthScreen()
@@ -181,28 +210,44 @@ class MainActivity : Activity() {
         contentFrame.addView(LedgerScreen(customer).build(this))
     }
 
-    /** بازکردن Drawer و تازه‌سازی نام صاحب کافه در هدر. */
+    /** باز کردن منوی همبرگری. Drawer دیگر هنگام هر لمس حذف و دوباره ساخته نمی‌شود. */
     fun openDrawer() {
         if (!loggedIn) return
-        drawerLayout.removeView(drawerPanel)
-        drawerPanel = buildDrawer()
-        drawerLayout.addView(drawerPanel)
-        drawerLayout.openDrawer(Gravity.END)
+        refreshDrawerHeader()
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.START)
+        drawerLayout.openDrawer(GravityCompat.START)
     }
 
-    fun markLoggedIn() {
+    private fun closeDrawer() {
+        if (::drawerLayout.isInitialized && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+    }
+
+    private fun refreshDrawerHeader() {
+        if (::drawerOwnerName.isInitialized) drawerOwnerName.text = db.ownerName()
+    }
+
+    /** بعد از ورود موفق فراخوانی می‌شود و انتخاب «به خاطر سپردن» را ذخیره می‌کند. */
+    fun markLoggedIn(rememberFor20Hours: Boolean = false) {
         loggedIn = true
+        sessionManager.saveRememberedSession(rememberFor20Hours)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED, GravityCompat.START)
+        refreshDrawerHeader()
     }
 
+    /** خروج دستی همیشه نشست ۲۰ ساعته را هم پاک می‌کند. */
     fun logout() {
+        sessionManager.clearRememberedSession()
         loggedIn = false
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED, GravityCompat.START)
         navigate(Route.AUTH)
     }
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         when {
-            drawerLayout.isDrawerOpen(Gravity.END) -> drawerLayout.closeDrawer(Gravity.END)
+            drawerLayout.isDrawerOpen(GravityCompat.START) -> closeDrawer()
             detailBackRoute != null -> navigate(detailBackRoute!!)
             loggedIn && currentRoute != Route.HOME -> navigate(Route.HOME)
             else -> super.onBackPressed()
