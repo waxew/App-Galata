@@ -48,7 +48,12 @@ object ScreenUi {
         addView(CafeIconView(host).apply { this.icon = icon }, LinearLayout.LayoutParams(CafeTheme.dp(host, 48), CafeTheme.dp(host, 48)))
     }
 
-    fun scroll(host: MainActivity, content: LinearLayout): ScrollView = ScrollView(host).apply { fillViewport = true; addView(content) }
+    /** اسکرول صفحه؛ isFillViewport باعث می‌شود محتوای کوتاه هم ارتفاع مناسب صفحه را بگیرد. */
+    fun scroll(host: MainActivity, content: LinearLayout): ScrollView = ScrollView(host).apply {
+        isFillViewport = true
+        addView(content)
+    }
+
     fun content(host: MainActivity): LinearLayout = LinearLayout(host).apply {
         orientation = LinearLayout.VERTICAL; layoutDirection = View.LAYOUT_DIRECTION_RTL
         setPadding(0, CafeTheme.dp(host, 10), 0, CafeTheme.dp(host, 28))
