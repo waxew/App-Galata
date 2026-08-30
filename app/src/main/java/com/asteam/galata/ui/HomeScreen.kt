@@ -63,7 +63,8 @@ class HomeScreen : GalataScreen {
         }
         val dayNames = arrayOf("ش", "ی", "د", "س", "چ", "پ", "ج")
         val now = Calendar.getInstance()
-        val daysFromSaturday = (now.get(Calendar.DAY_OF_WEEK) + 1) % 7
+        // Calendar.SATURDAY=7؛ با mod 7 شنبه صفر و تعداد روز تا ابتدای هفته درست می‌شود.
+        val daysFromSaturday = now.get(Calendar.DAY_OF_WEEK) % 7
         val start = now.clone() as Calendar
         start.add(Calendar.DAY_OF_MONTH, -daysFromSaturday)
         repeat(7) { index ->

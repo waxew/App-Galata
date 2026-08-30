@@ -50,7 +50,7 @@ jobs:
           RELEASE_APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
           cp "$RELEASE_APK" artifacts/Galata-v1.0.0-release.apk
           sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
-          if apksigner verify --verbose artifacts/Galata-v1.0.0-release.apk > artifacts/release-signature.txt 2>&1; then
+          if "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Galata-v1.0.0-release.apk > artifacts/release-signature.txt 2>&1; then
             echo "Release signature verification: PASS" >> artifacts/release-signature.txt
           else
             echo "Release signature verification: UNSIGNED - configure GitHub Secrets for publish signing" >> artifacts/release-signature.txt

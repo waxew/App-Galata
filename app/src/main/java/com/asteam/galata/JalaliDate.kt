@@ -106,7 +106,8 @@ object JalaliDate {
         val javaDay = Calendar.getInstance().apply {
             set(g[0], g[1] - 1, g[2], 12, 0, 0)
         }.get(Calendar.DAY_OF_WEEK)
-        return (javaDay + 1) % 7
+        // Calendar.SATURDAY=7 -> 0 و SUNDAY=1 -> 1؛ دقیقاً مطابق ترتیب شنبه تا جمعه.
+        return javaDay % 7
     }
 
     /** کلید پایدار یک روز برای جدول یادداشت‌های تقویم. */
