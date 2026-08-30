@@ -1,110 +1,80 @@
 package com.asteam.galata.ui
 
 import android.app.AlertDialog
-import android.graphics.Color
-import android.graphics.Typeface
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.Gravity
 import android.view.View
-import android.widget.EditText
 import android.widget.LinearLayout
 import com.asteam.galata.Customer
 import com.asteam.galata.MainActivity
 
-/**
- * صفحه Activity_Payment بر اساس Miro.
- * ابتدا لیست مشتری‌های بدهکار و مانده بدهی نمایش داده می‌شود؛ سپس کاربر تسویه کل یا قسمتی را انتخاب می‌کند.
- */
+/** تسویه مشتری: تسویه کامل یا پرداخت جزئی بدون دستکاری مستقیم مانده. */
 class PaymentsScreen : GalataScreen {
     override fun build(host: MainActivity): View {
-        val page = ScreenUi.page(host, "تسویه مشتری", "Payment", CafeIconView.Icon.WALLET)
+        val d = host.db.dashboard()
+        val page = ScreenUi.page(host, "تسویه مشتری", "ثبت پول واقعاً دریافت‌شده", CafeIconView.Icon.WALLET)
         val content = ScreenUi.content(host)
+        content.addView(ScreenUi.stat(host, "دریافتی امروز", ScreenUi.money(d.receiptsToday), CafeIconView.Icon.WALLET))
+        content.addView(ScreenUi.stat(host, "مطالبات کل", ScreenUi.money(d.receivable), CafeIconView.Icon.INVOICE))
         val debtors = host.db.customers().filter { it.balance > 0 }.sortedBy { it.name }
-
-        val search = ScreenUi.input(host, "🔎 جستجو در لیست مشتری ها")
+        val search = ScreenUi.input(host, "🔎 جستجو در مشتری‌های بدهکار")
         content.addView(search)
-        val list = LinearLayout(host).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(CafeTheme.dp(host, 8), 0, CafeTheme.dp(host, 8), 0)
-        }
+        val list = LinearLayout(host).apply { orientation = LinearLayout.VERTICAL }
         content.addView(list)
 
         fun render(filter: String = "") {
             list.removeAllViews()
-            val visible = debtors.filter { it.name.contains(filter, ignoreCase = true) }
-            if (visible.isEmpty()) {
-                list.addView(ScreenUi.empty(host, if (debtors.isEmpty()) "همه حساب‌ها تسویه هستند" else "مشتری پیدا نشد"))
-            }
+            val visible = debtors.filter { it.name.contains(filter, true) || it.phone.contains(filter) }
+            if (visible.isEmpty()) list.addView(ScreenUi.empty(host, if (debtors.isEmpty()) "همه حساب‌ها تسویه هستند" else "مشتری پیدا نشد"))
             visible.forEach { customer ->
-                list.addView(CafeTheme.card(
-                    host,
-                    customer.name,
-                    "کل / مانده بدهی مشتری: ${ScreenUi.money(customer.balance)}",
-                    CafeIconView.Icon.WALLET
-                ).apply {
+                list.addView(CafeTheme.card(host, customer.name, "مانده بدهی: ${ScreenUi.money(customer.balance)}", CafeIconView.Icon.WALLET).apply {
                     setOnClickListener { chooseSettlement(host, customer) }
                 })
             }
         }
-
         render()
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = render(s?.toString().orEmpty())
             override fun afterTextChanged(s: Editable?) = Unit
         })
-
-        page.addView(ScreenUi.scroll(host, content), LinearLayout.LayoutParams(-1, 0, 1f))
+        page.addView(ScreenUi.scroll(host, content), LinearLayout.LayoutParams(-1,0,1f))
         return page
     }
 
-    /** انتخاب بین «تسویه کل بدهی» و «تسویه قسمتی از بدهی» مطابق فریم Miro. */
     private fun chooseSettlement(host: MainActivity, customer: Customer) {
-        val options = arrayOf("✅ تسویه کل بدهی", "تسویه قسمتی از بدهی")
-        AlertDialog.Builder(host)
-            .setTitle(customer.name)
+        AlertDialog.Builder(host).setTitle(customer.name)
             .setMessage("مانده بدهی: ${ScreenUi.money(host.db.balance(customer.id))}")
-            .setItems(options) { _, which ->
-                if (which == 0) {
-                    val balance = host.db.balance(customer.id)
-                    if (balance > 0) {
-                        host.db.addPayment(customer.id, balance, "تسویه کل بدهی")
-                        ScreenUi.toast(host, "حساب ${customer.name} کامل تسویه شد")
-                        host.navigate(MainActivity.Route.PAYMENTS)
+            .setItems(arrayOf("✅ تسویه کل بدهی", "تسویه قسمتی از بدهی", "مشاهده صورت‌حساب")) { _, which ->
+                when (which) {
+                    0 -> {
+                        val balance = host.db.balance(customer.id)
+                        if (balance > 0 && host.db.addPayment(customer.id, balance, "تسویه کل بدهی") > 0) {
+                            ScreenUi.toast(host, "حساب ${customer.name} کامل تسویه شد")
+                            host.navigate(MainActivity.Route.PAYMENTS, addToHistory = false)
+                        }
                     }
-                } else {
-                    partialPaymentDialog(host, customer)
+                    1 -> partialPaymentDialog(host, customer)
+                    2 -> host.showLedger(customer)
                 }
-            }
-            .setNegativeButton("انصراف", null)
-            .show()
+            }.setNegativeButton("انصراف", null).show()
     }
 
-    /** تسویه قسمتی: فقط عددی بین صفر و مانده بدهی پذیرفته می‌شود. */
     private fun partialPaymentDialog(host: MainActivity, customer: Customer) {
-        val amount = ScreenUi.input(host, "مبلغ تسویه قسمتی", true)
+        val amount = ScreenUi.input(host, "مبلغ پرداختی", true)
         val note = ScreenUi.input(host, "توضیح پرداخت")
-        val form = ScreenUi.form(host, amount, note).apply {
-            setBackgroundColor(Color.WHITE)
-        }
-
-        AlertDialog.Builder(host)
-            .setTitle("تسویه قسمتی از بدهی")
+        AlertDialog.Builder(host).setTitle("تسویه قسمتی از بدهی")
             .setMessage("مانده فعلی: ${ScreenUi.money(host.db.balance(customer.id))}")
-            .setView(form)
+            .setView(ScreenUi.form(host, amount, note))
             .setNegativeButton("انصراف", null)
             .setPositiveButton("ثبت دریافت") { _, _ ->
                 val value = ScreenUi.num(amount.text.toString())
                 val balance = host.db.balance(customer.id)
-                if (value <= 0 || value > balance) {
-                    ScreenUi.toast(host, "مبلغ باید بیشتر از صفر و حداکثر برابر مانده بدهی باشد")
-                } else {
-                    host.db.addPayment(customer.id, value, note.text.toString().ifBlank { "تسویه قسمتی" })
-                    ScreenUi.toast(host, "دریافت ثبت شد")
-                    host.navigate(MainActivity.Route.PAYMENTS)
+                if (value <= 0 || value > balance) ScreenUi.toast(host, "مبلغ باید بیشتر از صفر و حداکثر برابر مانده بدهی باشد")
+                else if (host.db.addPayment(customer.id, value, note.text.toString().ifBlank { "تسویه قسمتی" }) > 0) {
+                    ScreenUi.toast(host, "دریافت ثبت شد؛ مانده جدید ${ScreenUi.money(balance - value)}")
+                    host.navigate(MainActivity.Route.PAYMENTS, addToHistory = false)
                 }
-            }
-            .show()
+            }.show()
     }
 }
