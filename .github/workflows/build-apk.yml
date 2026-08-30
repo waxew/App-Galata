@@ -43,13 +43,34 @@ jobs:
           GALATA_KEY_PASSWORD: ${{ secrets.GALATA_KEY_PASSWORD }}
         run: gradle --no-daemon :app:assembleDebug :app:assembleRelease
 
-      - name: Collect APKs and checksums
+      - name: Collect APKs, source and checksums
         run: |
-          mkdir -p artifacts
+          mkdir -p artifacts tools
           cp app/build/outputs/apk/debug/app-debug.apk artifacts/Galata-v1.0.0-debug.apk
           RELEASE_APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -n 1)
           cp "$RELEASE_APK" artifacts/Galata-v1.0.0-release.apk
-          sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
+
+          # سورس کامل بدون پوشه‌های Build و Git برای تحویل و آرشیو نسخه.
+          zip -qr artifacts/source.galata-v1.0.0.zip . \
+            -x '.git/*' '.gradle/*' 'app/build/*' 'build/*' 'artifacts/*' 'tools/*'
+
+          # ابزارهای رسمی Android Build Tools فقط برای امضای خصوصی خروجی پس از دانلود Artifact نگهداری می‌شوند.
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" tools/apksigner.jar
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" tools/zipalign
+          chmod +x tools/zipalign
+
+          cat > artifacts/build-info.txt <<EOF
+          Galata v1.0.0
+          versionCode=10
+          applicationId=com.asteam.galata
+          branch=$GITHUB_REF_NAME
+          commit=$GITHUB_SHA
+          Java=17
+          compileSdk=35
+          targetSdk=35
+          EOF
+
+          sha256sum artifacts/*.apk artifacts/source.galata-v1.0.0.zip > artifacts/SHA256SUMS.txt
           if "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose artifacts/Galata-v1.0.0-release.apk > artifacts/release-signature.txt 2>&1; then
             echo "Release signature verification: PASS" >> artifacts/release-signature.txt
           else
@@ -59,4 +80,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Galata-v1.0.0-build
-          path: artifacts/
+          path: |
+            artifacts/
+            tools/
