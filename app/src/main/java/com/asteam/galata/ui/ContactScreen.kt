@@ -1,39 +1,24 @@
 package com.asteam.galata.ui
 
-import android.graphics.Typeface
-import android.view.Gravity
+import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.widget.LinearLayout
-import android.widget.Space
-import android.widget.TextView
 import com.asteam.galata.MainActivity
 
-/** صفحه تماس با ما مطابق ساختار مشترک پروژه‌های Android App. */
+/** صفحه تماس با تیم توسعه؛ لمس کارت ایمیل، برنامه ایمیل دستگاه را باز می‌کند. */
 class ContactScreen : GalataScreen {
     override fun build(host: MainActivity): View {
-        val page = ScreenUi.page(host, "تماس با ما", "ارتباط با تیم توسعه", CafeIconView.Icon.TEA)
+        val page = ScreenUi.page(host, "تماس با ما", "پشتیبانی گالاتا", CafeIconView.Icon.CONTACT)
         val content = ScreenUi.content(host)
-        content.addView(CafeTheme.card(host, "پشتیبانی گالاتا", "as.team.support@gmail.com", CafeIconView.Icon.TEA))
-        content.addView(Space(host), LinearLayout.LayoutParams(-1, 0, 1f))
-        content.addView(View(host).apply {
-            setBackgroundColor(CafeTheme.caramel)
-            layoutParams = LinearLayout.LayoutParams(-1, 1).apply { setMargins(24, 24, 24, 16) }
+        content.addView(CafeTheme.card(host, "پشتیبانی گالاتا", "AS.Developers.Support@Gmail.Com", CafeIconView.Icon.CONTACT).apply {
+            setOnClickListener {
+                try { host.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:AS.Developers.Support@Gmail.Com"))) }
+                catch (_: Exception) { ScreenUi.toast(host, "برنامه ایمیل روی دستگاه پیدا نشد") }
+            }
         })
-        content.addView(TextView(host).apply {
-            text = "گروه توسعه فناوری و نرم افزاری as Team"
-            gravity = Gravity.CENTER
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(CafeTheme.espresso)
-        })
-        content.addView(TextView(host).apply {
-            text = "as.team.support@gmail.com"
-            gravity = Gravity.CENTER
-            textSize = 13f
-            setTextColor(CafeTheme.mocha)
-            setPadding(0, 6, 0, 20)
-        })
-        page.addView(content, LinearLayout.LayoutParams(-1,0,1f))
+        content.addView(CafeTheme.card(host, "تیم توسعه", "Develop by AS Team Group", CafeIconView.Icon.ABOUT))
+        page.addView(ScreenUi.scroll(host, content), LinearLayout.LayoutParams(-1, 0, 1f))
         return page
     }
 }
