@@ -1,8 +1,13 @@
-// ماژول اصلی برنامه گالاتا؛ applicationId عمداً ثابت است تا نسخه‌های بعدی روی نسخه قبلی نصب شوند.
+// ماژول اصلی برنامه گالاتا؛ applicationId ثابت است تا Releaseهای آینده روی نسخه قبلی نصب شوند.
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
+
+// اگر Workflow یا سیستم توسعه کلید دائمی را از محیط تزریق کند، Release با همان کلید امضا می‌شود.
+// کلید خصوصی عمداً داخل ریپوی عمومی Commit نمی‌شود.
+def releaseKeystorePath = System.getenv('GALATA_KEYSTORE_PATH')
+def hasReleaseSigning = releaseKeystorePath != null && !releaseKeystorePath.trim().isEmpty()
 
 android {
     namespace 'com.asteam.galata'
@@ -16,16 +21,26 @@ android {
         versionName '1.0.0'
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword System.getenv('GALATA_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('GALATA_KEY_ALIAS')
+                keyPassword System.getenv('GALATA_KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         debug {
-            // نسخه Debug فقط برای تست توسعه است.
+            // Debug بسته جدا دارد تا روی اطلاعات نسخه Publish اثر نگذارد.
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
         }
         release {
-            // کلید خصوصی انتشار داخل ریپوی عمومی نگهداری نمی‌شود.
-            // Workflow در صورت وجود Secrets، signingConfig را از متغیرهای محیطی می‌سازد.
             minifyEnabled false
+            if (hasReleaseSigning) signingConfig signingConfigs.release
         }
     }
 
@@ -37,6 +52,5 @@ android {
 }
 
 dependencies {
-    // DrawerLayout برای منوی همبرگری استاندارد و راست‌به‌چپ.
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
 }
