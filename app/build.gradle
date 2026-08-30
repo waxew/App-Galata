@@ -1,4 +1,4 @@
-// ماژول اصلی برنامه گالاتا.
+// ماژول اصلی برنامه گالاتا؛ applicationId عمداً ثابت است تا نسخه‌های بعدی روی نسخه قبلی نصب شوند.
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
@@ -9,19 +9,23 @@ android {
     compileSdk 35
 
     defaultConfig {
-        // applicationId ثابت می‌ماند تا نسخه جدید روی نسخه قبلی نصب شود و داده‌ها حفظ شوند.
         applicationId 'com.asteam.galata'
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName '0.3.0'
+        versionCode 10
+        versionName '1.0.0'
     }
 
     buildTypes {
+        debug {
+            // نسخه Debug فقط برای تست توسعه است.
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
         release {
+            // کلید خصوصی انتشار داخل ریپوی عمومی نگهداری نمی‌شود.
+            // Workflow در صورت وجود Secrets، signingConfig را از متغیرهای محیطی می‌سازد.
             minifyEnabled false
-            // فقط برای نسخه تست؛ انتشار نهایی باید با keystore دائمی امضا شود.
-            signingConfig signingConfigs.debug
         }
     }
 
@@ -32,7 +36,7 @@ android {
     kotlinOptions { jvmTarget = '17' }
 }
 
-// DrawerLayout واقعی برای منوی همبرگری کشویی سمت راست.
 dependencies {
+    // DrawerLayout برای منوی همبرگری استاندارد و راست‌به‌چپ.
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
 }
