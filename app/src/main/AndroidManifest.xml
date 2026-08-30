@@ -1,5 +1,12 @@
-<!-- مانیفست گالاتا؛ برنامه در این نسخه کاملاً آفلاین است. -->
+<!-- مانیفست گالاتا؛ داده‌های اصلی آفلاین‌اند و اینترنت فقط برای بررسی اختیاری نسخه جدید استفاده می‌شود. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- برای بررسی نسخه جدید از فایل version.json روی GitHub. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- برای اعلان یادآور در Android 13 و بالاتر. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- برای بازسازی زمان‌بندی یادآورها بعد از روشن‌شدن گوشی. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_galata"
@@ -7,6 +14,17 @@
         android:label="گالاتا"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- دریافت‌کننده اعلان‌های محلی؛ exported=false چون فقط خود برنامه آن را صدا می‌زند. -->
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
+        <!-- بعد از Boot همه یادآورهای باز دوباره زمان‌بندی می‌شوند. -->
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,27 +1,51 @@
-// ماژول اصلی برنامه گالاتا.
+// ماژول اصلی برنامه گالاتا؛ applicationId ثابت است تا Releaseهای آینده روی نسخه قبلی نصب شوند.
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
 }
+
+// اگر Workflow یا سیستم توسعه کلید دائمی را از محیط تزریق کند، Release با همان کلید امضا می‌شود.
+// کلید خصوصی عمداً داخل ریپوی عمومی Commit نمی‌شود.
+def releaseKeystorePath = System.getenv('GALATA_KEYSTORE_PATH')
+def hasReleaseSigning = releaseKeystorePath != null && !releaseKeystorePath.trim().isEmpty()
 
 android {
     namespace 'com.asteam.galata'
     compileSdk 35
 
     defaultConfig {
-        // applicationId ثابت می‌ماند تا نسخه جدید روی نسخه قبلی نصب شود و داده‌ها حفظ شوند.
         applicationId 'com.asteam.galata'
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName '0.3.0'
+        versionCode 10
+        versionName '1.0.0'
+    }
+
+    // BuildConfig برای نمایش نسخه و مقایسه versionCode در تنظیمات لازم است.
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword System.getenv('GALATA_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('GALATA_KEY_ALIAS')
+                keyPassword System.getenv('GALATA_KEY_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // Debug بسته جدا دارد تا روی اطلاعات نسخه Publish اثر نگذارد.
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
         release {
             minifyEnabled false
-            // فقط برای نسخه تست؛ انتشار نهایی باید با keystore دائمی امضا شود.
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) signingConfig signingConfigs.release
         }
     }
 
@@ -32,7 +56,6 @@ android {
     kotlinOptions { jvmTarget = '17' }
 }
 
-// DrawerLayout واقعی برای منوی همبرگری کشویی سمت راست.
 dependencies {
     implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
 }
