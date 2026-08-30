@@ -11,6 +11,7 @@
 - Target / Compile SDK: 35
 - زبان: Kotlin + Android Views
 - دیتابیس: SQLite داخلی با Migration افزایشی
+- QA: بیلد Debug و Release توسط GitHub Actions بررسی می‌شود.
 
 ## قابلیت‌ها
 
